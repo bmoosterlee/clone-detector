@@ -3,14 +3,14 @@ module CloneDetector
 import ASTVisitor;
 import lang::java::m3::AST;
 import IO;
+import Map;
 
 public map[str, set[loc]] detectTypeIClones(loc project){
 	set[Declaration] myAST = toAST(project);
 	set[Declaration] myClasses = {myClass | myCompilationUnit <- myAST, myClass <- toClasses(myCompilationUnit)};
 	set[loc] myClassLocs = {toLoc(myClass) | myClass <- myClasses};
-	map[loc, list[str]] myClassesWithContents = (myClass : readFileLines(myClass) | myClass <- myClassLocs);
-	map[loc, str] myClassesWithConcatenatedContents = (myClass : flatten(myContents) | <myClass, myContents> <- myClassesWithContents);
-	list[tuple[loc, str]] myClassesWithContentsAsList = toList(myClassesWithConcatenatedContents);
+	map[loc, str] myClassesWithContents = (myClass : md5HashFile(myClass) | myClass <- myClassLocs);
+	list[tuple[loc, str]] myClassesWithContentsAsList = toList(myClassesWithContents);
 	list[tuple[str, loc]] myContentsWithLocs = flip(myClassesWithContentsAsList);
 	map[str, set[loc]] myContentGroupsWithLocs = group(myContentsWithLocs);
 	return myContentGroupWithLocs;
@@ -18,14 +18,6 @@ public map[str, set[loc]] detectTypeIClones(loc project){
 
 public loc toLoc(Declaration declaration){
 	return declaration.decl;
-}
-
-public str flatten(list[str] myList){
-	accumulator = "";
-	for(str myLine <- myList){
-		accumulator += myLine;
-	}
-	return accumulator;
 }
 
 public list[tuple[str, loc]] flip(list[tuple[loc, str]] myList){
