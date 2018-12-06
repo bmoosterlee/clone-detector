@@ -1,6 +1,8 @@
 module ASTVisitor
 
 import lang::java::m3::AST;
+import lang::java::jdt::m3::Core;
+import lang::java::jdt::m3::AST;
 
 //visit all subtrees, build a 'semantic' tree which enumerates all variables,
 //and returns all ast nodes in a comparable manner (two if statements with equivalent
@@ -21,7 +23,7 @@ import lang::java::m3::AST;
 //each of these copies, and throw them all into the group by.
 
 public set[Declaration] toAST(loc project){
-	return createAstFromEclipseProject(project);
+	return createAstsFromEclipseProject(project, true);
 }
 
 public set[Declaration] toClasses(Declaration compilationUnit){
