@@ -99,10 +99,8 @@ public list[list[list[str]]] calculateMutations(list[list[str]] myWindows){
 
 public list[list[str]] mutate(list[str] window){
 	list[list[str]] myMutations = [window];
-	if(size(window)>6){
-		for(i <- [1..(size(window)-1)]){
-			myMutations += [delete(window, i)];
-		}
+	for(i <- [1..(size(window)-1)]){
+		myMutations += [delete(window, i)];
 	}
 	return myMutations;
 }
