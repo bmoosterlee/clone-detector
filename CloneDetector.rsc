@@ -93,8 +93,8 @@ public list[list[str]] calculateWindows(list[str] myContents){
 	return accumulator;
 }
 
-public list[list[list[str]]] calculateMutations(list[list[str]] windows){
-	return [mutate(myWindow) | myWindow <- windows];
+public list[list[list[str]]] calculateMutations(list[list[str]] myWindows){
+	return [mutate(myWindow) | myWindow <- myWindows];
 }
 
 public list[list[str]] mutate(list[str] window){
