@@ -86,8 +86,8 @@ public str concat(list[str] myList){
 public list[list[str]] calculateWindows(list[str] myContents){
 	list[list[str]] accumulator = [];
 	for(int windowSize <- [6]){
-		for(sourceLineIndex <- [0..(size(myContents)-windowSize)]){
-			accumulator += [slice(myContents, sourceLineIndex, windowSize)];
+		for(sourceLineIndex <- [0..(size(myContents)-windowSize+1)]){
+			accumulator += [[val | val <- slice(myContents, sourceLineIndex, windowSize)]];
 		}
 	}
 	return accumulator;
