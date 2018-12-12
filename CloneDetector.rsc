@@ -140,7 +140,7 @@ public void analyze(loc project){
 
 	writeFile(myProjectLoc, "");
 	int counter = 0;
-	appendToFile(myProjectLoc, "start of clone class: \n");
+	appendToFile(myProjectLoc, "start of clone class: ");
 	appendToFile(myProjectLoc, counter);
 	appendToFile(myProjectLoc, "\n");
 	for(list[str] cloneClass <- typeICloneClasses){
