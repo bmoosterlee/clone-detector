@@ -15,6 +15,31 @@ public map[list[str], set[loc]] detectTypeIClones(set[loc] myClassLocs){
 	return myCloneClasses;
 }
 
+public map[list[str], set[loc]] detectTypeIIClones(set[loc] myClassLocs){
+	println("stage II GENERATE SIGNATURES");
+	list[tuple[Declaration, loc]] myClassesWithContents = generateTypeIICloneSignature(myClassLocs);
+	println("stage II GROUP");
+	map[Declaration, set[loc]] myCloneClasses = groupClones(myClassesWithContents);
+	map[list[str], set[loc]] myCloneClassesAsStrings = (readFileLines(toLoc(key)) : myCloneClasses[key] | key <- myCloneClasses);
+	return myCloneClassesAsStrings;
+}
+
+public map[Declaration, set[loc]] groupClones(list[tuple[Declaration, loc]] myContentsWithLocsAsList){
+	map[Declaration, set[loc]] myCloneClasses = group(myContentsWithLocsAsList);
+	return (x : myCloneClasses[x] | x <- myCloneClasses, size(myCloneClasses[x])>1);
+}
+
+public map[Declaration, set[loc]] group(list[tuple[Declaration, loc]] myList){
+	set[Declaration] keys = {};
+	for(tuple[Declaration, loc] x <- myList){
+		Declaration key = x[0];
+		keys += key;
+	}
+	
+	map[Declaration, set[loc]] myMap = (key : {x[1] | x <- myList, x[0] == key} | key <- keys);
+	return myMap;
+}
+
 public map[list[str], set[loc]] detectTypeIIIClones(set[loc] myClassLocs){
 	println("stage III GENERATE SIGNATURES");
 	list[tuple[list[str], loc]] myClassesWithContents = generateTypeIIICloneSignature(myClassLocs);
@@ -57,6 +82,25 @@ public list[tuple[list[str], loc]] generateTypeICloneSignature(set[loc] myClassL
 	return windowWithClassAsList;
 }
 
+public list[tuple[Declaration, loc]] generateTypeIICloneSignature(set[loc] myClassLocs){
+	println("stage II 1");
+	map[loc, set[Declaration]] classesWithContents =  (myClass : toAST(myClass) | myClass <- myClassLocs);
+	//Write method which builds all the sub graphs from an ast
+	println("stage II 2");
+	map[loc, list[Declaration]] classesWithAdjustedAsts = (myClass : [generateTypeIICloneSignature(myAst) | myAst <- classesWithContents[myClass]] | myClass <- classesWithContents);
+	println("stage II 3");
+	list[tuple[loc, list[Declaration]]] classWithAstsAsList = [<myClass, classesWithAdjustedAsts[myClass]> | myClass <- classesWithAdjustedAsts];
+	println("stage II 4");
+	list[tuple[loc, Declaration]] astsWithClassAsList = [<x, yy> | <x, y> <- classWithAstsAsList, yy <- y];
+	println("stage II 5");
+	list[tuple[Declaration, loc]] astWithClassAsList = flip(astsWithClassAsList);
+	return astWithClassAsList;
+}
+
+public list[tuple[Declaration, loc]] flip(list[tuple[loc, Declaration]] myList){
+	return [<y, x> | <x, y> <- myList];
+}
+
 public list[tuple[list[str], loc]] generateTypeIIICloneSignature(set[loc] myClassLocs){
 	println("stage III 1");
 	map[loc, list[str]] classesWithContents =  (myClass : readFileLines(myClass) | myClass <- myClassLocs);
@@ -65,13 +109,10 @@ public list[tuple[list[str], loc]] generateTypeIIICloneSignature(set[loc] myClas
 	println("stage III 3");
 	map[loc, list[list[list[str]]]] classesWithMutationsPerWindow = (myClass : calculateMutations(classesWithWindows[myClass]) | myClass <- classesWithWindows);
 	println("stage III 4");
-	//concat mutations earlier to improve legibility
-	map[loc, list[list[str]]] classesWithMutations = (myClass : myMutation | myClass <- classesWithMutationsPerWindow, myMutation <- classesWithMutationsPerWindow[myClass]);
+	list[tuple[loc, list[str]]] classWithMutationAsList = [<myClass, myMutation> | myClass <- classesWithMutationsPerWindow, myWindow <- classesWithMutationsPerWindow[myClass], myMutation <- myWindow];
 	println("stage III 5");
-	list[tuple[loc, list[str]]] classWithMutationAsList = [<myClass, myMutation> | myClass <- classesWithMutations, myMutation <- classesWithMutations[myClass]];
-	println("stage III 6");
 	list[tuple[list[str], loc]] mutationWithClassAsList = flip(classWithMutationAsList);
-	println("stage III 7");
+	println("stage III 6");
 	return mutationWithClassAsList;
 }
 
@@ -131,38 +172,26 @@ public map[list[str], set[loc]] group(list[tuple[list[str], loc]] myList){
 public void analyze(loc project){
 	set[loc] myClassLocs = projectToClassLocs(project);
 
-	println("started detecting type I clones");
-	set[list[str]] typeICloneClasses = {x | x <- detectTypeIClones(myClassLocs)};
-	loc myProjectLoc = |project://CloneDetector/out/typeIclone.txt|;
-	println("started writing type I clones to file");
+	writeToFile("I", detectTypeIClones(myClassLocs), |project://CloneDetector/out/typeIclone.txt|);
+	writeToFile("II", detectTypeIIClones(myClassLocs), |project://CloneDetector/out/typeIIclone.txt|);
+	writeToFile("III", detectTypeIIIClones(myClassLocs), |project://CloneDetector/out/typeIIIclone.txt|);
+}
 
-	writeFile(myProjectLoc, "");
+public void writeToFile(str cloneType, map[list[str], set[loc]] cloneClassMap, loc myOutputLoc){
+	println("started detecting type " + cloneType + " clones");
+	set[list[str]] cloneClasses = {x | x <- cloneClassMap};
+	println("started writing type " + cloneType + " clones to file");
+	writeFile(myOutputLoc, "");
 	int counter = 0;
-	appendToFile(myProjectLoc, "start of clone class: ");
-	appendToFile(myProjectLoc, counter);
-	appendToFile(myProjectLoc, "\n");
-	for(list[str] cloneClass <- typeICloneClasses){
+	appendToFile(myOutputLoc, "start of clone class: ");
+	appendToFile(myOutputLoc, counter);
+	appendToFile(myOutputLoc, "\n");
+	for(list[str] cloneClass <- cloneClasses){
 		for(str cloneLine <- cloneClass){
-			appendToFile(myProjectLoc, cloneLine + "\n");
+			appendToFile(myOutputLoc, cloneLine + "\n");
 		}
 		counter += 1;
-	}
-	
-	println("started detecting type III clones");
-	set[list[str]] typeIIICloneClasses = {x | x <- detectTypeIIIClones(myClassLocs)};
-	loc myProjectLoc2 = |project://CloneDetector/out/typeIIIclone.txt|;
-	println("started writing type III clones to file");
-	
-	writeFile(myProjectLoc2, "");
-	counter = 0;
-	appendToFile(myProjectLoc2, "start of clone class: ");
-	appendToFile(myProjectLoc2, counter);
-	appendToFile(myProjectLoc2, "\n");
-	for(list[str] cloneClass <- typeIIICloneClasses){
-		for(str cloneLine <- cloneClass){
-			appendToFile(myProjectLoc2, cloneLine + "\n");
-		}
-		counter += 1;
+		appendToFile(myOutputLoc, "\n");
 	}
 }
 
