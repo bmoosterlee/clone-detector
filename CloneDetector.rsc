@@ -12,7 +12,9 @@ public map[list[str], set[loc]] detectTypeIClones(set[loc] myClassLocs){
 	list[tuple[list[str], loc]] myClassesWithContents = generateTypeICloneSignature(myClassLocs);
 	println("stage I GROUP");
 	map[list[str], set[loc]] myCloneClasses = groupClones(myClassesWithContents);
-	return myCloneClasses;
+	println("stage I REMOVE SUBSUMED");
+	map[list[str], set[loc]] myNonSubsumedCloneClasses = removeSubsumedCloneClasses(myCloneClasses);
+	return myNonSubsumedCloneClasses;
 }
 
 public map[list[str], set[loc]] detectTypeIIClones(set[loc] myClassLocs){
@@ -45,7 +47,32 @@ public map[list[str], set[loc]] detectTypeIIIClones(set[loc] myClassLocs){
 	list[tuple[list[str], loc]] myClassesWithContents = generateTypeIIICloneSignature(myClassLocs);
 	println("stage III GROUP");
 	map[list[str], set[loc]] myCloneClasses = groupClones(myClassesWithContents);
-	return myCloneClasses;
+	println("stage III REMOVE SUBSUMED");
+	map[list[str], set[loc]] myNonSubsumedCloneClasses = removeSubsumedCloneClasses(myCloneClasses);
+	return myNonSubsumedCloneClasses;
+}
+
+public map[list[str], set[loc]] removeSubsumedCloneClasses(map[list[str], set[loc]] myCloneClasses){
+//	take all keys
+	list[list[str]] keys = [x | x <- myCloneClasses];
+//	sort them from large to small
+	list[list[str]] sortedKeys = reverse(sort(keys));
+	set[list[str]] subsumedKeys = {};
+//	loop over this sorted list
+	for(int index <- [0..size(sortedKeys)]){
+		list[str] myKey = sortedKeys[index];
+		//For each element, check whether any smaller element is contained in this element
+		set[list[str]] smallerKeys = {x | x <- slice(sortedKeys, index+1, size(sortedKeys)-(index+1))};
+		set[list[str]] containedKeys = {x | x <- smallerKeys, myKey >= x};
+		//if this is the case, lookup both keys, and check whether |small locs - large locs| = 0
+		set[loc] myLocs = myCloneClasses[myKey];
+		set[list[str]] containedKeysWhereLocsAreContained = {x | x <- containedKeys, myLocs >= myCloneClasses[x]};
+		//if this is the case, mark the smaller key for deletion by adding it to a delete list
+		subsumedKeys += containedKeysWhereLocsAreContained;
+	}
+//	when we've gone through all keys, we take the original key set, 
+//	and remove all keys marked for deletion. We are now left with the unsubsumed clone classes
+	return (x : myCloneClasses[x] | x <- ({y | y <- myCloneClasses} - subsumedKeys));
 }
 
 public set[loc] projectToClassLocs(loc project){
