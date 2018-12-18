@@ -173,8 +173,8 @@ public void analyze(loc project){
 	set[loc] myClassLocs = projectToClassLocs(project);
 
 	writeToFile("I", detectTypeIClones(myClassLocs), |project://CloneDetector/out/typeIclone.txt|);
-	writeToFile("II", detectTypeIIClones(myClassLocs), |project://CloneDetector/out/typeIIclone.txt|);
-	writeToFile("III", detectTypeIIIClones(myClassLocs), |project://CloneDetector/out/typeIIIclone.txt|);
+	//writeToFile("II", detectTypeIIClones(myClassLocs), |project://CloneDetector/out/typeIIclone.txt|);
+	//writeToFile("III", detectTypeIIIClones(myClassLocs), |project://CloneDetector/out/typeIIIclone.txt|);
 }
 
 public void writeToFile(str cloneType, map[list[str], set[loc]] cloneClassMap, loc myOutputLoc){
@@ -183,14 +183,27 @@ public void writeToFile(str cloneType, map[list[str], set[loc]] cloneClassMap, l
 	println("started writing type " + cloneType + " clones to file");
 	writeFile(myOutputLoc, "");
 	int counter = 0;
-	appendToFile(myOutputLoc, "start of clone class: ");
-	appendToFile(myOutputLoc, counter);
-	appendToFile(myOutputLoc, "\n");
+
 	for(list[str] cloneClass <- cloneClasses){
+		appendToFile(myOutputLoc, "start of clone class: ");
+		appendToFile(myOutputLoc, counter);
+		appendToFile(myOutputLoc, "\n");
+		appendToFile(myOutputLoc, "my locations are here: ");
+		appendToFile(myOutputLoc, "\n");
+
+		// add locations of the clones
+		for(loc cloneLoc <- cloneClassMap[cloneClass]) {
+			appendToFile(myOutputLoc, cloneLoc);
+			appendToFile(myOutputLoc, "\n");
+		}
+
+		// add the raw clone data
 		for(str cloneLine <- cloneClass){
 			appendToFile(myOutputLoc, cloneLine + "\n");
 		}
+	
 		counter += 1;
+		
 		appendToFile(myOutputLoc, "\n");
 	}
 }
